@@ -87,7 +87,7 @@
             if (e.code === "KeyD" || e.code === "ArrowRight") keys.d = true;
             if (e.code === "Space" || e.code === "ArrowUp") {
                 if (!mario.isJumping && !gameOver) {
-                    mario.velocityY = -12.5; // Initial variable jump force trigger
+                    mario.velocityY = -12.5; 
                     mario.isJumping = true;
                 }
                 keys.space = true;
@@ -104,21 +104,20 @@
         function buildLevelLayout() {
             environmentBlocks = [];
             
-            // Build breakable retro blocks and item triggers in clusters
-            for (let i = 0; i < 35; i++) {
+            // Build blocks and question structures
+            for (let i = 0; i < 50; i++) {
                 let baseX = i * 40;
-                // Add floating block rows
                 if (i >= 6 && i <= 9) environmentBlocks.push({ x: baseX, y: 240, width: 40, height: 40, type: i === 7 ? 'mystery' : 'brick', hit: false });
                 if (i >= 14 && i <= 18) environmentBlocks.push({ x: baseX, y: 160, width: 40, height: 40, type: i % 2 === 0 ? 'mystery' : 'brick', hit: false });
                 if (i >= 23 && i <= 27) environmentBlocks.push({ x: baseX, y: 240, width: 40, height: 40, type: 'brick', hit: false });
 
-                // Add official pipeline structures
+                // Pipes
                 if (i === 11) environmentBlocks.push({ x: baseX, y: groundY - 60, width: 50, height: 60, type: 'pipe' });
                 if (i === 21) environmentBlocks.push({ x: baseX, y: groundY - 85, width: 50, height: 85, type: 'pipe' });
                 if (i === 30) environmentBlocks.push({ x: baseX, y: groundY - 70, width: 50, height: 70, type: 'pipe' });
             }
 
-            // Populate traditional flat-head Goombas
+            // Populate Goombas
             enemies = [
                 { x: 400, y: groundY - 32, width: 32, height: 32, speed: -1.2, alive: true, stepFrame: 0 },
                 { x: 680, y: groundY - 32, width: 32, height: 32, speed: -1.2, alive: true, stepFrame: 0 },
@@ -138,56 +137,45 @@
             mario.velocityY = 0;
             mario.isJumping = false;
             buildLevelLayout();
-            gameLoop();
         }
 
         function updatePhysics() {
             if (gameOver) return;
 
-            // X-Axis Lateral Mechanics (Acceleration & Friction)
-            mario.isWalking = false;
             if (keys.a) {
                 mario.velocityX -= 0.45;
                 mario.facing = 'left';
-                mario.isWalking = true;
             }
             if (keys.d) {
                 mario.velocityX += 0.45;
                 mario.facing = 'right';
-                mario.isWalking = true;
             }
 
             mario.velocityX *= mario.friction;
             mario.x += mario.velocityX;
 
-            // Keep character bounded inside viewport walls
             if (mario.x < cameraX) {
                 mario.x = cameraX;
                 mario.velocityX = 0;
             }
 
-            // Dynamic camera scrolling lock
             if (mario.x > cameraX + canvas.width / 2) {
                 cameraX = mario.x - canvas.width / 2;
             }
 
-            // Y-Axis Vertical Mechanics (Gravity and variable dampening)
             mario.velocityY += gravity;
-            
-            // Variable jumping dampener logic (release early = shorter arc height)
             if (!keys.space && mario.velocityY < -4) {
                 mario.velocityY = -4;
             }
             mario.y += mario.velocityY;
 
-            // Basic floor boundaries check
             if (mario.y >= groundY - mario.height) {
                 mario.y = groundY - mario.height;
                 mario.velocityY = 0;
                 mario.isJumping = false;
             }
 
-            // Environmental solid objects collision resolution loop
+            // Block Collisions
             for (let b of environmentBlocks) {
                 if (
                     mario.x < b.x + b.width &&
@@ -195,20 +183,17 @@
                     mario.y < b.y + b.height &&
                     mario.y + mario.height > b.y
                 ) {
-                    // Detect specific vector directions of impacting contacts
                     let overlapX = Math.min(mario.x + mario.width - b.x, b.x + b.width - mario.x);
                     let overlapY = Math.min(mario.y + mario.height - b.y, b.y + b.height - mario.y);
 
                     if (overlapX > overlapY) {
                         if (mario.velocityY > 0 && mario.y + mario.height - overlapY <= b.y + 4) {
-                            // Landed cleanly on top surface safely
                             mario.y -= overlapY;
                             mario.velocityY = 0;
                             mario.isJumping = false;
                         } else if (mario.velocityY < 0) {
-                            // Hit head against lower face segment ceiling
                             mario.y += overlapY;
-                            mario.velocityY = 1.5; // Force drop bounce back down
+                            mario.velocityY = 1.5; 
                             
                             if ((b.type === 'brick' || b.type === 'mystery') && !b.hit) {
                                 b.hit = true;
@@ -217,7 +202,6 @@
                             }
                         }
                     } else {
-                        // Lateral collision with sides of blocks/pipes
                         if (mario.velocityX > 0) mario.x -= overlapX;
                         else if (mario.velocityX < 0) mario.x += overlapX;
                         mario.velocityX = 0;
@@ -225,17 +209,14 @@
                 }
             }
 
-            // Update and assess processing for enemy actors loops
+            // Enemy Processing
             for (let e of enemies) {
                 if (!e.alive) continue;
-                
                 e.x += e.speed;
 
-                // Alternate AI movement frame loop counter logic
                 if (Math.floor(Date.now() / 150) % 2 === 0) e.stepFrame = 1;
                 else e.stepFrame = 0;
 
-                // Simple wall/pipe bounds bouncing inversion routing
                 for (let b of environmentBlocks) {
                     if (b.type === 'pipe' && e.x < b.x + b.width && e.x + e.width > b.x) {
                         e.speed *= -1;
@@ -243,10 +224,53 @@
                     }
                 }
 
-                // Check conflict overlapping parameters against character positions
                 if (
                     mario.x + 4 < e.x + e.width &&
                     mario.x + mario.width - 4 > e.x &&
                     mario.y < e.y + e.height &&
                     mario.y + mario.height > e.y
                 ) {
+                    if (mario.velocityY > 0 && mario.y + mario.height - 12 <= e.y) {
+                        e.alive = false;
+                        score += 200;
+                        mario.velocityY = -7.5; 
+                    } else {
+                        gameOver = true;
+                    }
+                }
+            }
+        }
+
+        function drawMarioSprite() {
+            ctx.save();
+            ctx.translate(mario.x - cameraX, mario.y);
+
+            if (mario.facing === 'left') {
+                ctx.translate(mario.width, 0);
+                ctx.scale(-1, 1);
+            }
+
+            const overallsBlue = "#0020a0";
+            const skinTan = "#f8b800";
+            const shirtRed = "#e40010";
+            const hairBrown = "#944400";
+
+            ctx.fillStyle = hairBrown;
+            ctx.fillRect(4, 38, 10, 6);
+            ctx.fillRect(18, 38, 10, 6);
+
+            ctx.fillStyle = overallsBlue;
+            ctx.fillRect(6, 22, 20, 16);
+            ctx.fillRect(10, 14, 12, 10);
+
+            ctx.fillStyle = shirtRed;
+            ctx.fillRect(2, 14, 8, 8);
+            ctx.fillRect(22, 14, 8, 8);
+            ctx.fillRect(8, 10, 16, 4);
+
+            ctx.fillStyle = skinTan;
+            ctx.fillRect(8, 2, 18, 10);
+            ctx.fillRect(24, 4, 6, 4); 
+
+            ctx.fillStyle = hairBrown;
+            ctx.fillRect(6, 2, 4, 6); 
