@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Mario - Arcade</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #111;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            color: #ffcc00;
+            text-shadow: 2px 2px #ff0000;
+            margin: 5px 0;
+        }
+        #gameCanvas {
+            background-color: #5c94fc;
+            border: 4px solid #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .controls {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #4ecca3;
+        }
+        .back-btn {
+            margin-top: 20px;
+            color: #aaa;
+            text-decoration: none;
+        }
+        .back-btn:hover { color: #fff; }
+    </style>
+</head>
+<body>
+
+    <h1>Super Local Mario 🍄</h1>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div class="controls">Controls: SPACEBAR or UP ARROW to Jump | Press 'R' to Restart</div>
+    <a href="index.html" class="back-btn">← Back to Main Menu</a>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let score = 0;
+        let gameOver = false;
+        const gravity = 0.6;
+
+        const player = {
+            x: 100, y: 300, width: 32, height: 40,
+            color: "#ff0000", velocityY: 0, isJumping: false, jumpForce: -13
+        };
+
+        let obstacles = [];
+        let obstacleTimer = 0;
+        const groundY = canvas.height - 40;
+
+        window.addEventListener("keydown", function(e) {
+            if ((e.code === "Space" || e.code === "ArrowUp") && !player.isJumping && !gameOver) {
+                player.velocityY = player.jumpForce;
+                player.isJumping = true;
+            }
+            if (e.code === "KeyR" && gameOver) {
+                resetGame();
+            }
+        });
+
+        function spawnObstacle() {
+            let speed = 4 + Math.random() * 3 + (score * 0.1);
+            obstacles.push({
+                x: canvas.width, y: groundY - 30, width: 30, height: 30,
+                color: "#8b4513", speed: speed, passed: false
+            });
+        }
+
+        function resetGame() {
+            score = 0;
+            gameOver = false;
+            obstacles = [];
+            player.y = groundY - player.height;
+            player.velocityY = 0;
+            player.isJumping = false;
+            obstacleTimer = 0;
+            gameLoop();
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            player.velocityY += gravity;
+            player.y += player.velocityY;
+
+            if (player.y >= groundY - player.height) {
+                player.y = groundY - player.height;
+                player.velocityY = 0;
+                player.isJumping = false;
+            }
+
+            obstacleTimer++;
+            if (obstacleTimer % 90 === 0) {
+                spawnObstacle();
+                obstacleTimer = 0;
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= obstacles[i].speed;
+
+                if (
+                    player.x < obstacles[i].x + obstacles[i].width &&
+                    player.x + player.width > obstacles[i].x &&
+                    player.y < obstacles[i].y + obstacles[i].height &&
+                    player.y + player.height > obstacles[i].y
+                ) {
+                    gameOver = true;
+                }
+
+                if (obstacles[i].x + obstacles[i].width < player.x && !obstacles[i].passed) {
+                    score++;
+                    obstacles[i].passed = true;
+                }
+
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = "#5c94fc";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#fcb47c";
+            ctx.fillRect(0, groundY, canvas.width, 40);
+            ctx.fillStyle = "#00a800";
+            ctx.fillRect(0, groundY, canvas.width, 8);
+
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(player.x + 8, player.y + 4, 16, 6);
+
+            for (let obs of obstacles) {
+                ctx.fillStyle = obs.color;
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+            }
+
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 20px 'Segoe UI'";
+            ctx.fillText("SCORE: " + score, 20, 35);
+
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#ff0000";
+                ctx.font = "bold 40px 'Segoe UI'";
+                ctx.textAlign = "center";
+                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillStyle = "#fff";
+                ctx.font = "20px 'Segoe UI'";
+                ctx.fillText("Press 'R' to Play Again", canvas.width / 2, canvas.height / 2 + 30);
+                ctx.textAlign = "left";
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        resetGame();
+    </script>
+</body>
+</html>
