@@ -47,7 +47,7 @@
 
     <h1>SUPER MARIO BROS. DELUXE</h1>
     <canvas id="gameCanvas" width="768" height="440"></canvas>
-    <div class="controls">A / D = Move Left/Right | SPACE = Jump (Hold for higher jumps) | R = Restart</div>
+    <div class="controls">A / D = Move Left/Right | SPACE = Jump | R = Restart</div>
     <a href="index.html" class="back-btn">« RETURN TO MENU</a>
 
     <script>
@@ -69,9 +69,7 @@
             velocityX: 0, velocityY: 0,
             speed: 3.8, friction: 0.85,
             isJumping: false,
-            facing: 'right',
-            animFrame: 0,
-            isWalking: false
+            facing: 'right'
         };
 
         // Keyboard Input Dictionary
@@ -209,18 +207,21 @@
                 }
             }
 
-            // Enemy Processing
-            for (let e of enemies) {
+            // Safe Enemy Processing Loop
+            for (let i = 0; i < enemies.length; i++) {
+                let e = enemies[i];
                 if (!e.alive) continue;
+                
                 e.x += e.speed;
+                e.stepFrame = Math.floor(Date.now() / 150) % 2;
 
-                if (Math.floor(Date.now() / 150) % 2 === 0) e.stepFrame = 1;
-                else e.stepFrame = 0;
-
-                for (let b of environmentBlocks) {
+                // Wall / Pipe boundary bouncing checks
+                for (let j = 0; j < environmentBlocks.length; j++) {
+                    let b = environmentBlocks[j];
                     if (b.type === 'pipe' && e.x < b.x + b.width && e.x + e.width > b.x) {
                         e.speed *= -1;
                         e.x += e.speed;
+                        break;
                     }
                 }
 
@@ -270,7 +271,3 @@
 
             ctx.fillStyle = skinTan;
             ctx.fillRect(8, 2, 18, 10);
-            ctx.fillRect(24, 4, 6, 4); 
-
-            ctx.fillStyle = hairBrown;
-            ctx.fillRect(6, 2, 4, 6); 
