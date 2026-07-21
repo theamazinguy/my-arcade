@@ -1,216 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Arcade</title>
-
-<style>
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
-body{
-    font-family:Arial, Helvetica, sans-serif;
-    background:linear-gradient(135deg,#020412,#071d42,#010308);
-    color:white;
-    overflow-x:hidden;
-}
-
-/* Navigation */
-
-nav{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:20px 8%;
-    background:rgba(0,0,0,.4);
-    backdrop-filter:blur(12px);
-    position:sticky;
-    top:0;
-}
-
-.logo{
-    font-size:32px;
-    color:#00e5ff;
-    font-weight:bold;
-    text-shadow:0 0 20px #00e5ff;
-}
-
-nav ul{
-    display:flex;
-    list-style:none;
-    gap:25px;
-}
-
-nav a{
-    color:white;
-    text-decoration:none;
-    transition:.3s;
-}
-
-nav a:hover{
-    color:#00e5ff;
-}
-
-/* Hero */
-
-.hero{
-    text-align:center;
-    padding:100px 20px;
-}
-
-.hero h1{
-    font-size:65px;
-    color:#00e5ff;
-    text-shadow:0 0 25px #00e5ff;
-}
-
-.hero p{
-    margin-top:20px;
-    font-size:22px;
-    color:#ccc;
-}
-
-.search{
-    margin-top:35px;
-}
-
-.search input{
-    width:320px;
-    padding:15px;
-    border:none;
-    border-radius:30px;
-    outline:none;
-    font-size:18px;
-}
-
-.games{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-    gap:30px;
-    padding:60px;
-}
-
-.card{
-    background:rgba(255,255,255,.08);
-    border:1px solid #00e5ff55;
-    border-radius:20px;
-    padding:35px;
-    text-align:center;
-    transition:.35s;
-}
-
-.card:hover{
-    transform:translateY(-10px);
-    box-shadow:0 0 30px #00e5ff;
-}
-
-.card h2{
-    margin-bottom:15px;
-}
-
-button{
-    margin-top:15px;
-    padding:12px 30px;
-    border:none;
-    border-radius:30px;
-    background:#00e5ff;
-    color:black;
-    font-weight:bold;
-    cursor:pointer;
-    transition:.3s;
-}
-
-button:hover{
-    transform:scale(1.08);
-}
-
-footer{
-    text-align:center;
-    padding:35px;
-    color:#888;
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Arcade 🎮</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #111424;
+            color: #fff;
+            margin: 0;
+            padding: 50px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #ffcc00;
+            text-shadow: 2px 2px #ff0000;
+            font-size: 3rem;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #a0aec0;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+        .arcade-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            max-width: 1000px;
+            width: 100%;
+        }
+        .game-card {
+            background-color: #1a1f37;
+            border: 2px solid #3d4675;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .game-card:hover:not(.coming-soon) {
+            transform: translateY(-5px);
+            border-color: #ffcc00;
+        }
+        .game-card h2 {
+            color: #4ecca3;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .game-card p {
+            color: #cbd5e0;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+        .play-btn {
+            display: inline-block;
+            background-color: #e94560;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .play-btn:hover {
+            background-color: #ff6b81;
+        }
+        /* Style for games not built yet */
+        .coming-soon {
+            opacity: 0.6;
+            border-style: dashed;
+        }
+        .coming-soon h2 {
+            color: #a0aec0;
+        }
+        .badge {
+            background-color: #4a5568;
+            color: #cbd5e0;
+            padding: 8px;
+            font-weight: bold;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
-
 <body>
 
-<nav>
+    <h1>Welcome to My Arcade 🎮</h1>
+    <div class="subtitle">Created by TheAmazingGuy</div>
+    
+    <div class="arcade-grid">
 
-<div class="logo">🎮 My Arcade</div>
+        <!-- SUPER MARIO (READY) -->
+        <div class="game-card">
+            <div>
+                <h2>Super Mario 🍄</h2>
+                <p>Dodge the moving obstacles and jump your way to victory!</p>
+            </div>
+            <a href="mario.html" class="play-btn">Play Now</a>
+        </div>
 
-<ul>
-<li><a href="#">Home</a></li>
-<li><a href="#">Games</a></li>
-<li><a href="#">News</a></li>
-<li><a href="#">About</a></li>
-</ul>
+        <!-- FLAPPY BIRD (READY) -->
+        <div class="game-card">
+            <div>
+                <h2>Flappy Bird 🐦</h2>
+                <p>Flap through the narrow gaps between the giant green pipes.</p>
+            </div>
+            <a href="flappy.html" class="play-btn">Play Now</a>
+        </div>
 
-</nav>
+        <!-- RETRO SNAKE -->
+        <div class="game-card coming-soon">
+            <div>
+                <h2>Retro Snake 🐍</h2>
+                <p>Eat apples and grow your snake longer without crashing into the walls.</p>
+            </div>
+            <span class="badge">Coming Soon</span>
+        </div>
 
-<section class="hero">
+        <!-- RACING GAME -->
+        <div class="game-card coming-soon">
+            <div>
+                <h2>Speed Racer 🏎️</h2>
+                <p>Dodge oncoming traffic and set the fastest lap record.</p>
+            </div>
+            <span class="badge">Coming Soon</span>
+        </div>
 
-<h1>WELCOME TO MY ARCADE</h1>
+        <!-- ZOMBIE SURVIVAL -->
+        <div class="game-card coming-soon">
+            <div>
+                <h2>Zombie Wave 🧟</h2>
+                <p>Fend off waves of pixel zombies using classic arcade mechanics.</p>
+            </div>
+            <span class="badge">Coming Soon</span>
+        </div>
 
-<p>Play awesome games built by TheAmazingGuy.</p>
+        <!-- RPG ADVENTURE -->
+        <div class="game-card coming-soon">
+            <div>
+                <h2>Pixel RPG ⚔️</h2>
+                <p>Explore a mini open world, fight monsters, and level up your stats.</p>
+            </div>
+            <span class="badge">Coming Soon</span>
+        </div>
 
-<div class="search">
-<input placeholder="Search games...">
-</div>
+        <!-- PUZZLE CHALLENGE -->
+        <div class="game-card coming-soon">
+            <div>
+                <h2>Block Puzzle 🧩</h2>
+                <p>Fit the geometric shapes together perfectly to clear lines and scores.</p>
+            </div>
+            <span class="badge">Coming Soon</span>
+        </div>
 
-</section>
-
-<section class="games">
-
-<div class="card">
-<h2>🐍 Snake</h2>
-<p>Coming Soon</p>
-<button>Play</button>
-</div>
-
-<div class="card">
-<h2>🏎 Racing</h2>
-<p>Coming Soon</p>
-<button>Play</button>
-</div>
-
-<div class="card">
-<h2>🧟 Zombie</h2>
-<p>Coming Soon</p>
-<button>Play</button>
-</div>
-
-<div class="card">
-<h2>⚔ RPG</h2>
-<p>Coming Soon</p>
-<button>Play</button>
-</div>
-
-<div class="card">
-<h2>🧩 Puzzle</h2>
-<p>Coming Soon</p>
-<button>Play</button>
-</div>
-
-<div class="card">
-<h2>🎯 Shooter</h2>
-<p>Coming Soon</p>
-<button>Play</button>
-</div>
-
-</section>
-
-<footer>
-
-© 2026 My Arcade • Created by TheAmazingGuy
-
-</footer>
+    </div>
 
 </body>
 </html>
