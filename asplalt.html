@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asphalt 8 - 2D Arcade Airborne</title>
+    <style>
+        body {
+            font-family: 'Impact', sans-serif;
+            background-color: #050811;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        h1 {
+            color: #00ccff;
+            text-shadow: 0 0 10px #0055ff, 2px 2px #000;
+            font-size: 28px;
+            letter-spacing: 3px;
+            margin: 5px 0;
+        }
+        #gameCanvas {
+            background-color: #0b112c;
+            border: 4px solid #00ccff;
+            box-shadow: 0 0 25px rgba(0, 204, 255, 0.4);
+            display: block;
+        }
+        .controls {
+            margin-top: 10px;
+            font-size: 14px;
+            font-family: monospace;
+            color: #a0aec0;
+            text-align: center;
+        }
+        .back-btn {
+            margin-top: 12px;
+            color: #55627d;
+            text-decoration: none;
+            font-family: sans-serif;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .back-btn:hover { color: #00ccff; }
+    </style>
+</head>
+<body>
+
+    <h1>ASPHALT 8: MINI AIRBORNE</h1>
+    <canvas id="gameCanvas" width="768" height="440"></canvas>
+    <div class="controls">A / D = Steer | W = Engage NITRO Boost | S = Tap to DRIFT | R = Restart</div>
+    <a href="index.html" class="back-btn">« EXIT TO ARCADE MAIN MENU</a>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Game state engine metrics
+        let speed = 0;
+        let score = 0;
+        let distance = 0;
+        let nitroGauge = 50; // out of 100
+        let isNitroActive = false;
+        let isDrifting = false;
+        let airTime = 0; // tracking flight scale states
+        let gameOver = false;
+        let tickerMessage = "";
+        let tickerTimer = 0;
+
+        // Player Vehicle Coordinates
+        const car = { x: canvas.width / 2 - 25, y: 350, width: 50, height: 30 };
+
+        // Controller Dictionary Array 
+        const keys = { a: false, d: false, w: false, s: false };
+
+        // Dynamic Environment Obstacles Loops Arrays
+        let trackCurves = [];
+        let opponentCars = [];
+        let ramps = [];
+
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "KeyA" || e.code === "ArrowLeft") keys.a = true;
+            if (e.code === "KeyD" || e.code === "ArrowRight") keys.d = true;
+            if (e.code === "KeyW" || e.code === "ArrowUp") keys.w = true;
+            if (e.code === "KeyS" || e.code === "ArrowDown") keys.s = true;
+            if (e.code === "KeyR" && gameOver) resetRaceTrack();
+        });
+
+        window.addEventListener("keyup", (e) => {
+            if (e.code === "KeyA" || e.code === "ArrowLeft") keys.a = false;
+            if (e.code === "KeyD" || e.code === "ArrowRight") keys.d = false;
+            if (e.code === "KeyW" || e.code === "ArrowUp") keys.w = false;
+            if (e.code === "KeyS" || e.code === "ArrowDown") keys.s = false;
+        });
+
+        function triggerTicker(msg) {
+            tickerMessage = msg;
+            tickerTimer = 90; // display frame timeout duration counts
+        }
+
+        function resetRaceTrack() {
+            speed = 8;
+            score = 0;
+            distance = 0;
+            nitroGauge = 60;
+            isNitroActive = false;
+            isDrifting = false;
+            airTime = 0;
+            gameOver = false;
+            car.x = canvas.width / 2 - 25;
+            car.y = 350;
+
+            // Generate initial batch of rival racer modules positions
+            opponentCars = [
+                { x: 200, y: -100, speedModifier: 1.5, type: 'Ferrari', color: '#ff1100' },
+                { x: 500, y: -400, speedModifier: 1.8, type: 'Lamborghini', color: '#ffcc00' },
+                { x: 350, y: -800, speedModifier: 2.2, type: 'Bugatti', color: '#1a1aff' }
+            ];
+
+            // Setup Launchpad locations
+            ramps = [
+                { x: 180, y: -300, width: 45, visible: true },
+                { x: 520, y: -900, width: 45, visible: true }
+            ];
+
+            triggerTicker("READY... GO! 🔥");
+            gameLoop();
+        }
+
+        function updateGameMechanics() {
+            if (gameOver) return;
+
+            distance += Math.floor(speed / 2);
+            score += Math.floor(speed / 4);
+
+            // 1. Manage Acceleration Speed caps
+            let maxCurrentSpeed = isNitroActive ? 22 : 14;
+            
+            if (keys.w && nitroGauge > 0) {
+                isNitroActive = true;
+                nitroGauge -= 0.35;
+                if (speed < maxCurrentSpeed) speed += 0.25;
+            } else {
+                isNitroActive = false;
+                if (speed > 14) speed -= 0.3; // cooling back to cruise velocity limits
+                else if (speed < 14) speed += 0.1;
+            }
+
+            // 2. Lateral Handling & Drift Calculations Loops
+            isDrifting = false;
+            let steerFactor = isNitroActive ? 5.5 : 4.5;
+
+            if (keys.s && (keys.a || keys.d)) {
+                isDrifting = true;
+                steerFactor *= 1.35; // increased handling rotation angle when loose
+                if (nitroGauge < 100) nitroGauge += 0.2; // earn nitro via sideways drift sliding maneuvers
+            }
+
+            if (keys.a) car.x -= steerFactor;
+            if (keys.d) car.x += steerFactor;
+
+            // Outer off-road boundaries grass collision tracking
+            if (car.x < 120 || car.x + car.width > 648) {
+                if (airTime === 0) {
+                    speed = Math.max(speed - 0.4, 4); // dirt friction slowdown
+                    isDrifting = false;
+                }
+            }
+
+            // 3. Air-time Stunt Jumping Physics Engine Checks
+            if (airTime > 0) {
+                airTime--;
+                // Handle dynamic scale sizing adjustments when falling back to track floor plate surfaces
+                if (airTime > 25) car.y = 350 - (40 - airTime) * 2; 
+                else car.y = 350 - airTime * 2;
+
+                if (airTime === 0) {
+                    car.y = 350;
+                    triggerTicker("PERFECT LANDING 🌟");
+                    score += 500;
+                }
+            }
+
+            // 4. Opponent Vehicle Traversal Logic Loops
+            for (let op of opponentCars) {
+                op.y += (speed - op.speedModifier * 6);
+
+                // Recycle rival placements back ahead when scrolled out of boundaries frame bottom line positions
+                if (op.y > canvas.height + 100) {
+                    op.y = -500 - Math.random() * 300;
+                    op.x = 160 + Math.random() * 400;
+                }
+
+                // Crash & Takedown hitbox overlapping checks
+                if (
+                    airTime === 0 &&
+                    car.x < op.x + 44 &&
+                    car.x + car.width > op.x &&
+                    car.y < op.y + 26 &&
+                    car.y + car.height > op.y
+                ) {
+                    if (isNitroActive) {
+                        // Clean destruction knockdown action sequence
+                        op.y = -600; 
+                        op.x = 160 + Math.random() * 400;
+                        score += 1500;
+                        nitroGauge = Math.min(nitroGauge + 40, 100);
+                        triggerTicker("💥 KNOCKDOWN! +1500");
+                    } else {
+                        // Crash game over logic sequence
+                        gameOver = true;
+                    }
+                }
+            }
+
+            // 5. Airborne Ramp Stunt Launchpads Collision Detections
+            for (let r of ramps) {
+                r.y += speed;
+
+                if (r.y > canvas.height + 50) {
+                    r.y = -800 - Math.random() * 400;
+                    r.x = 160 + Math.random() * 400;
+                }
+
+                if (
+                    airTime === 0 &&
+                    car.x < r.x + r.width &&
+                    car.x + car.width > r.x &&
+                    car.y < r.y + 20 &&
+                    car.y + car.height > r.y
+                ) {
+                    airTime = 40; // engage flight timer state cycle logic parameters
+                    triggerTicker("🚀 AIRBORNE BARREL ROLL!");
+                    nitroGauge = Math.min(nitroGauge + 25, 100);
+                }
+            }
+
+            // Lower countdown timer sequences values metrics
+            if (tickerTimer > 0) tickerTimer--;
+        }
+
+        /* ==================== RENDERING GRAPHICS PROCEDURAL FRAME DRAW ==================== */
+        function drawVisualTrackLayers() {
+            // Distant desert neon futuristic horizon landscape layout wireframe
+            ctx.fillStyle = "#090d1f";
+            ctx.fillRect(0, 0, canvas.width, 160);
+
+            // Draw Synth Horizon lines glow bars elements
+            ctx.fillStyle = "#ff0055";
+            ctx.fillRect(0, 156, canvas.width, 4);
+
+            // Ground base off-road shoulder boundaries strips
+            ctx.fillStyle = "#121b3d"; 
+            ctx.fillRect(0, 160, canvas.width, canvas.height - 160);
+
+            // Perspective Asphalt Track Plate Profile Rendering Layout Boundaries
+            ctx.fillStyle = "#1d233d";
+            ctx.beginPath();
+            ctx.moveTo(120, canvas.height);
+            ctx.lineTo(280, 160);
+            ctx.lineTo(488, 160);
+            ctx.lineTo(648, canvas.height);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw repeating center white dash line meshes using distance module updates factor
+            ctx.strokeStyle = "#fff";
