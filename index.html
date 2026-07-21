@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHub</title>
+
+    <style>
+        body{
+            margin:0;
+            font-family:Arial, sans-serif;
+            background:#111;
+            color:white;
+            text-align:center;
+        }
+
+        header{
+            background:#1f1f1f;
+            padding:25px;
+            font-size:40px;
+            font-weight:bold;
+        }
+
+        h2{
+            margin-top:40px;
+        }
+
+        .games{
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:20px;
+            padding:40px;
+        }
+
+        .card{
+            background:#222;
+            padding:30px;
+            border-radius:15px;
+            transition:.3s;
+        }
+
+        .card:hover{
+            transform:scale(1.05);
+            background:#333;
+        }
+
+        button{
+            margin-top:15px;
+            padding:10px 20px;
+            border:none;
+            border-radius:8px;
+            cursor:pointer;
+            font-size:16px;
+        }
+
+        button:hover{
+            background:lime;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+🎮 GameHub
+</header>
+
+<h2>Welcome to My Gaming Website!</h2>
+
+<p>More games coming soon!</p>
+
+<div class="games">
+
+<div class="card">
+<h3>🐍 Snake</h3>
+<button>Coming Soon</button>
+</div>
+
+<div class="card">
+<h3>🏎 Racing</h3>
+<button>Coming Soon</button>
+</div>
+
+<div class="card">
+<h3>🧟 Zombie</h3>
+<button>Coming Soon</button>
+</div>
+
+<div class="card">
+<h3>⚔️ RPG</h3>
+<button>Coming Soon</button>
+</div>
+
+<div class="card">
+<h3>🧩 Puzzle</h3>
+<button>Coming Soon</button>
+</div>
+
+<div class="card">
+<h3>🎯 Shooter</h3>
+<button>Coming Soon</button>
+</div>
+
+</div>
+
+</body>
+</html>
