@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Mario - Arcade</title>
+    <title>Super Mario Bros. Deluxe</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #111;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #000;
             color: #fff;
             margin: 0;
             display: flex;
@@ -15,170 +15,238 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
+            overflow: hidden;
         }
         h1 {
-            color: #ffcc00;
-            text-shadow: 2px 2px #ff0000;
+            color: #ff9900;
             margin: 5px 0;
+            font-size: 24px;
+            letter-spacing: 2px;
         }
         #gameCanvas {
-            background-color: #5c94fc;
-            border: 4px solid #fff;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background-color: #5c94fc; /* Official NES Sky Blue */
+            border: 6px double #fff;
+            display: block;
         }
         .controls {
-            margin-top: 15px;
-            font-weight: bold;
-            color: #4ecca3;
+            margin-top: 12px;
+            font-size: 14px;
+            color: #ffcc00;
+            text-align: center;
         }
         .back-btn {
-            margin-top: 20px;
-            color: #aaa;
+            margin-top: 15px;
+            color: #a5a5a5;
             text-decoration: none;
+            font-size: 14px;
         }
         .back-btn:hover { color: #fff; }
     </style>
 </head>
 <body>
 
-    <h1>Super Local Mario 🍄</h1>
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
-    <div class="controls">Controls: SPACEBAR or UP ARROW to Jump | Press 'R' to Restart</div>
-    <a href="index.html" class="back-btn">← Back to Main Menu</a>
+    <h1>SUPER MARIO BROS. DELUXE</h1>
+    <canvas id="gameCanvas" width="768" height="440"></canvas>
+    <div class="controls">A / D = Move Left/Right | SPACE = Jump (Hold for higher jumps) | R = Restart</div>
+    <a href="index.html" class="back-btn">« RETURN TO MENU</a>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
+        // Game Configuration & Engine States
         let score = 0;
+        let coins = 0;
         let gameOver = false;
-        const gravity = 0.6;
+        let cameraX = 0;
+        const gravity = 0.55;
+        const groundY = canvas.height - 48;
 
-        const player = {
-            x: 100, y: 300, width: 32, height: 40,
-            color: "#ff0000", velocityY: 0, isJumping: false, jumpForce: -13
+        // Player State with Real Physics
+        const mario = {
+            x: 100, y: 300,
+            width: 32, height: 44,
+            velocityX: 0, velocityY: 0,
+            speed: 3.8, friction: 0.85,
+            isJumping: false,
+            facing: 'right',
+            animFrame: 0,
+            isWalking: false
         };
 
-        let obstacles = [];
-        let obstacleTimer = 0;
-        const groundY = canvas.height - 40;
+        // Keyboard Input Dictionary
+        const keys = { a: false, d: false, space: false };
 
-        window.addEventListener("keydown", function(e) {
-            if ((e.code === "Space" || e.code === "ArrowUp") && !player.isJumping && !gameOver) {
-                player.velocityY = player.jumpForce;
-                player.isJumping = true;
+        // Authentic World Map Layout Structures
+        let environmentBlocks = [];
+        let enemies = [];
+
+        // Setup Event Listeners for smooth control tracking
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "KeyA" || e.code === "ArrowLeft") keys.a = true;
+            if (e.code === "KeyD" || e.code === "ArrowRight") keys.d = true;
+            if (e.code === "Space" || e.code === "ArrowUp") {
+                if (!mario.isJumping && !gameOver) {
+                    mario.velocityY = -12.5; // Initial variable jump force trigger
+                    mario.isJumping = true;
+                }
+                keys.space = true;
             }
-            if (e.code === "KeyR" && gameOver) {
-                resetGame();
-            }
+            if (e.code === "KeyR" && gameOver) resetGame();
         });
 
-        function spawnObstacle() {
-            let speed = 4 + Math.random() * 3 + (score * 0.1);
-            obstacles.push({
-                x: canvas.width, y: groundY - 30, width: 30, height: 30,
-                color: "#8b4513", speed: speed, passed: false
-            });
+        window.addEventListener("keyup", (e) => {
+            if (e.code === "KeyA" || e.code === "ArrowLeft") keys.a = false;
+            if (e.code === "KeyD" || e.code === "ArrowRight") keys.d = false;
+            if (e.code === "Space" || e.code === "ArrowUp") keys.space = false;
+        });
+
+        function buildLevelLayout() {
+            environmentBlocks = [];
+            
+            // Build breakable retro blocks and item triggers in clusters
+            for (let i = 0; i < 35; i++) {
+                let baseX = i * 40;
+                // Add floating block rows
+                if (i >= 6 && i <= 9) environmentBlocks.push({ x: baseX, y: 240, width: 40, height: 40, type: i === 7 ? 'mystery' : 'brick', hit: false });
+                if (i >= 14 && i <= 18) environmentBlocks.push({ x: baseX, y: 160, width: 40, height: 40, type: i % 2 === 0 ? 'mystery' : 'brick', hit: false });
+                if (i >= 23 && i <= 27) environmentBlocks.push({ x: baseX, y: 240, width: 40, height: 40, type: 'brick', hit: false });
+
+                // Add official pipeline structures
+                if (i === 11) environmentBlocks.push({ x: baseX, y: groundY - 60, width: 50, height: 60, type: 'pipe' });
+                if (i === 21) environmentBlocks.push({ x: baseX, y: groundY - 85, width: 50, height: 85, type: 'pipe' });
+                if (i === 30) environmentBlocks.push({ x: baseX, y: groundY - 70, width: 50, height: 70, type: 'pipe' });
+            }
+
+            // Populate traditional flat-head Goombas
+            enemies = [
+                { x: 400, y: groundY - 32, width: 32, height: 32, speed: -1.2, alive: true, stepFrame: 0 },
+                { x: 680, y: groundY - 32, width: 32, height: 32, speed: -1.2, alive: true, stepFrame: 0 },
+                { x: 950, y: groundY - 32, width: 32, height: 32, speed: -1.4, alive: true, stepFrame: 0 },
+                { x: 1100, y: groundY - 32, width: 32, height: 32, speed: -1.4, alive: true, stepFrame: 0 }
+            ];
         }
 
         function resetGame() {
             score = 0;
+            coins = 0;
             gameOver = false;
-            obstacles = [];
-            player.y = groundY - player.height;
-            player.velocityY = 0;
-            player.isJumping = false;
-            obstacleTimer = 0;
+            cameraX = 0;
+            mario.x = 100;
+            mario.y = groundY - mario.height;
+            mario.velocityX = 0;
+            mario.velocityY = 0;
+            mario.isJumping = false;
+            buildLevelLayout();
             gameLoop();
         }
 
-        function update() {
+        function updatePhysics() {
             if (gameOver) return;
 
-            player.velocityY += gravity;
-            player.y += player.velocityY;
-
-            if (player.y >= groundY - player.height) {
-                player.y = groundY - player.height;
-                player.velocityY = 0;
-                player.isJumping = false;
+            // X-Axis Lateral Mechanics (Acceleration & Friction)
+            mario.isWalking = false;
+            if (keys.a) {
+                mario.velocityX -= 0.45;
+                mario.facing = 'left';
+                mario.isWalking = true;
+            }
+            if (keys.d) {
+                mario.velocityX += 0.45;
+                mario.facing = 'right';
+                mario.isWalking = true;
             }
 
-            obstacleTimer++;
-            if (obstacleTimer % 90 === 0) {
-                spawnObstacle();
-                obstacleTimer = 0;
+            mario.velocityX *= mario.friction;
+            mario.x += mario.velocityX;
+
+            // Keep character bounded inside viewport walls
+            if (mario.x < cameraX) {
+                mario.x = cameraX;
+                mario.velocityX = 0;
             }
 
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].x -= obstacles[i].speed;
+            // Dynamic camera scrolling lock
+            if (mario.x > cameraX + canvas.width / 2) {
+                cameraX = mario.x - canvas.width / 2;
+            }
 
+            // Y-Axis Vertical Mechanics (Gravity and variable dampening)
+            mario.velocityY += gravity;
+            
+            // Variable jumping dampener logic (release early = shorter arc height)
+            if (!keys.space && mario.velocityY < -4) {
+                mario.velocityY = -4;
+            }
+            mario.y += mario.velocityY;
+
+            // Basic floor boundaries check
+            if (mario.y >= groundY - mario.height) {
+                mario.y = groundY - mario.height;
+                mario.velocityY = 0;
+                mario.isJumping = false;
+            }
+
+            // Environmental solid objects collision resolution loop
+            for (let b of environmentBlocks) {
                 if (
-                    player.x < obstacles[i].x + obstacles[i].width &&
-                    player.x + player.width > obstacles[i].x &&
-                    player.y < obstacles[i].y + obstacles[i].height &&
-                    player.y + player.height > obstacles[i].y
+                    mario.x < b.x + b.width &&
+                    mario.x + mario.width > b.x &&
+                    mario.y < b.y + b.height &&
+                    mario.y + mario.height > b.y
                 ) {
-                    gameOver = true;
+                    // Detect specific vector directions of impacting contacts
+                    let overlapX = Math.min(mario.x + mario.width - b.x, b.x + b.width - mario.x);
+                    let overlapY = Math.min(mario.y + mario.height - b.y, b.y + b.height - mario.y);
+
+                    if (overlapX > overlapY) {
+                        if (mario.velocityY > 0 && mario.y + mario.height - overlapY <= b.y + 4) {
+                            // Landed cleanly on top surface safely
+                            mario.y -= overlapY;
+                            mario.velocityY = 0;
+                            mario.isJumping = false;
+                        } else if (mario.velocityY < 0) {
+                            // Hit head against lower face segment ceiling
+                            mario.y += overlapY;
+                            mario.velocityY = 1.5; // Force drop bounce back down
+                            
+                            if ((b.type === 'brick' || b.type === 'mystery') && !b.hit) {
+                                b.hit = true;
+                                score += 100;
+                                coins += 1;
+                            }
+                        }
+                    } else {
+                        // Lateral collision with sides of blocks/pipes
+                        if (mario.velocityX > 0) mario.x -= overlapX;
+                        else if (mario.velocityX < 0) mario.x += overlapX;
+                        mario.velocityX = 0;
+                    }
+                }
+            }
+
+            // Update and assess processing for enemy actors loops
+            for (let e of enemies) {
+                if (!e.alive) continue;
+                
+                e.x += e.speed;
+
+                // Alternate AI movement frame loop counter logic
+                if (Math.floor(Date.now() / 150) % 2 === 0) e.stepFrame = 1;
+                else e.stepFrame = 0;
+
+                // Simple wall/pipe bounds bouncing inversion routing
+                for (let b of environmentBlocks) {
+                    if (b.type === 'pipe' && e.x < b.x + b.width && e.x + e.width > b.x) {
+                        e.speed *= -1;
+                        e.x += e.speed;
+                    }
                 }
 
-                if (obstacles[i].x + obstacles[i].width < player.x && !obstacles[i].passed) {
-                    score++;
-                    obstacles[i].passed = true;
-                }
-
-                if (obstacles[i].x + obstacles[i].width < 0) {
-                    obstacles.splice(i, 1);
-                }
-            }
-        }
-
-        function draw() {
-            ctx.fillStyle = "#5c94fc";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = "#fcb47c";
-            ctx.fillRect(0, groundY, canvas.width, 40);
-            ctx.fillStyle = "#00a800";
-            ctx.fillRect(0, groundY, canvas.width, 8);
-
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(player.x + 8, player.y + 4, 16, 6);
-
-            for (let obs of obstacles) {
-                ctx.fillStyle = obs.color;
-                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-            }
-
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 20px 'Segoe UI'";
-            ctx.fillText("SCORE: " + score, 20, 35);
-
-            if (gameOver) {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#ff0000";
-                ctx.font = "bold 40px 'Segoe UI'";
-                ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
-                ctx.fillStyle = "#fff";
-                ctx.font = "20px 'Segoe UI'";
-                ctx.fillText("Press 'R' to Play Again", canvas.width / 2, canvas.height / 2 + 30);
-                ctx.textAlign = "left";
-            }
-        }
-
-        function gameLoop() {
-            update();
-            draw();
-            if (!gameOver) {
-                requestAnimationFrame(gameLoop);
-            }
-        }
-
-        resetGame();
-    </script>
-</body>
-</html>
+                // Check conflict overlapping parameters against character positions
+                if (
+                    mario.x + 4 < e.x + e.width &&
+                    mario.x + mario.width - 4 > e.x &&
+                    mario.y < e.y + e.height &&
+                    mario.y + mario.height > e.y
+                ) {
