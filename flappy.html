@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flappy Bird - Arcade</title>
+    <title>Flappy Bird Arcade</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #111;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #000;
             color: #fff;
             margin: 0;
             display: flex;
@@ -18,59 +18,73 @@
             overflow: hidden;
         }
         h1 {
-            color: #ffcc00;
-            text-shadow: 2px 2px #d35400;
+            color: #ff9900;
             margin: 5px 0;
+            font-size: 24px;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px #000;
         }
         #gameCanvas {
-            background-color: #70c5ce;
-            border: 4px solid #fff;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background-color: #70c5ce; /* Official Arcade Sky Blue */
+            border: 6px double #fff;
+            display: block;
         }
         .controls {
-            margin-top: 15px;
-            font-weight: bold;
-            color: #4ecca3;
+            margin-top: 12px;
+            font-size: 14px;
+            color: #ffcc00;
+            text-align: center;
         }
         .back-btn {
-            margin-top: 20px;
-            color: #aaa;
+            margin-top: 15px;
+            color: #a5a5a5;
             text-decoration: none;
+            font-size: 14px;
         }
         .back-btn:hover { color: #fff; }
     </style>
 </head>
 <body>
 
-    <h1>Flappy Bird 🐦</h1>
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
-    <div class="controls">Controls: SPACEBAR or UP ARROW to Fly | Press 'R' to Restart</div>
-    <a href="index.html" class="back-btn">← Back to Main Menu</a>
+    <h1>FLAPPY BIRD ARCADE</h1>
+    <canvas id="gameCanvas" width="768" height="440"></canvas>
+    <div class="controls">SPACEBAR or UP ARROW = Flap Wing | R = Restart Challenge</div>
+    <a href="index.html" class="back-btn">« RETURN TO MENU</a>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
+        // Game Configuration Variables
         let score = 0;
+        let highScore = 0;
         let gameOver = false;
+        let groundScrollX = 0;
+        const groundHeight = 56;
+        const groundY = canvas.height - groundHeight;
 
+        // Bird Physics Configuration
         const bird = {
-            x: 150,
-            y: 200,
-            width: 34,
-            height: 24,
-            gravity: 0.4,
+            x: 180,
+            y: 180,
+            radius: 14,
+            gravity: 0.42,
             velocity: 0,
-            jump: -6.5
+            jumpForce: -6.8,
+            rotation: 0
         };
 
+        // Pipe Management Configuration
         let pipes = [];
         let spawnTimer = 0;
-        const pipeGap = 130;
+        const pipeGap = 135;
+        const pipeWidth = 72;
+        const pipeSpeed = 3.2;
 
-        window.addEventListener("keydown", function(e) {
+        window.addEventListener("keydown", (e) => {
             if ((e.code === "Space" || e.code === "ArrowUp") && !gameOver) {
-                bird.velocity = bird.jump;
+                bird.velocity = bird.jumpForce;
+                bird.rotation = -0.35; // Instant upward tilt when flapping
             }
             if (e.code === "KeyR" && gameOver) {
                 resetGame();
@@ -81,91 +95,193 @@
             score = 0;
             gameOver = false;
             pipes = [];
-            bird.y = 200;
+            bird.y = 180;
             bird.velocity = 0;
+            bird.rotation = 0;
             spawnTimer = 0;
+            groundScrollX = 0;
             gameLoop();
         }
 
-        function update() {
+        function updatePhysics() {
             if (gameOver) return;
 
+            // Apply gravity and update bird positions
             bird.velocity += bird.gravity;
             bird.y += bird.velocity;
 
-            if (bird.y > canvas.height - bird.height || bird.y < 0) {
-                gameOver = true;
+            // Handle rotational dive animation (nose dives down when falling)
+            if (bird.velocity > 3) {
+                bird.rotation = Math.min(bird.rotation + 0.08, Math.PI / 2);
+            } else if (bird.velocity < 0) {
+                bird.rotation = Math.max(bird.rotation - 0.02, -0.4);
             }
 
+            // Floor/Ceiling crash validations
+            if (bird.y + bird.radius >= groundY) {
+                bird.y = groundY - bird.radius;
+                gameOver = true;
+            }
+            if (bird.y - bird.radius <= 0) {
+                bird.y = bird.radius;
+                bird.velocity = 0.5; // Bump downward
+            }
+
+            // Scroll ground mesh independent of scenery
+            groundScrollX = (groundScrollX - pipeSpeed) % 24;
+
+            // Generate obstacle intervals
             spawnTimer++;
-            if (spawnTimer % 100 === 0) {
-                let topHeight = Math.floor(Math.random() * 180) + 40;
-                pipes.push({ x: canvas.width, top: topHeight, passed: false });
+            if (spawnTimer % 90 === 0) {
+                // Generate relative gaps safely inside viewport limits
+                let minHeight = 40;
+                let maxHeight = groundY - pipeGap - 40;
+                let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+                
+                pipes.push({
+                    x: canvas.width,
+                    top: topHeight,
+                    passed: false
+                });
                 spawnTimer = 0;
             }
 
+            // Update individual pipe offsets
             for (let i = pipes.length - 1; i >= 0; i--) {
-                pipes[i].x -= 3.5;
+                pipes[i].x -= pipeSpeed;
 
-                if (bird.x < pipes[i].x + 60 && bird.x + bird.width > pipes[i].x) {
-                    if (bird.y < pipes[i].top || bird.y + bird.height > pipes[i].top + pipeGap) {
+                // Precision collision bounding calculations
+                let bLeft = bird.x - bird.radius + 3;
+                let bRight = bird.x + bird.radius - 3;
+                let bTop = bird.y - bird.radius + 3;
+                let bBottom = bird.y + bird.radius - 3;
+
+                if (bRight > pipes[i].x && bLeft < pipes[i].x + pipeWidth) {
+                    if (bTop < pipes[i].top || bBottom > pipes[i].top + pipeGap) {
                         gameOver = true;
                     }
                 }
 
-                if (pipes[i].x + 60 < bird.x && !pipes[i].passed) {
+                // Increment score counter on clean pipeline crossing
+                if (pipes[i].x + pipeWidth < bird.x && !pipes[i].passed) {
                     score++;
+                    if (score > highScore) highScore = score;
                     pipes[i].passed = true;
                 }
 
-                if (pipes[i].x < -60) {
+                // Splice pipes when moving past left frame boundary
+                if (pipes[i].x < -pipeWidth) {
                     pipes.splice(i, 1);
                 }
             }
         }
 
-        function draw() {
-            ctx.fillStyle = "#70c5ce";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        /* ==================== GRAPHICS DRAW ENGINE ==================== */
+        function drawBird() {
+            ctx.save();
+            ctx.translate(bird.x, bird.y);
+            ctx.rotate(bird.rotation);
 
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#000";
+
+            // 1. Yellow Round Body Base
+            ctx.fillStyle = "#f1c40f";
+            ctx.beginPath();
+            ctx.arc(0, 0, bird.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // 2. Wing Mesh Layer (White/Orange accent flap)
             ctx.fillStyle = "#f39c12";
-            ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(bird.x + 20, bird.y + 4, 8, 6);
+            ctx.beginPath();
+            ctx.ellipse(-6, 2, 8, 5, Math.PI / 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
 
-            ctx.fillStyle = "#2ecc71";
+            // 3. Large Eye Layer
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.arc(5, -4, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#000";
+            ctx.beginPath();
+            ctx.arc(6, -4, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 4. Large Orange Beak
+            ctx.fillStyle = "#e67e22";
+            ctx.beginPath();
+            ctx.moveTo(11, -2);
+            ctx.lineTo(21, 2);
+            ctx.lineTo(11, 7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawPipes() {
             for (let p of pipes) {
-                ctx.fillRect(p.x, 0, 60, p.top);
-                ctx.fillRect(p.x, p.top + pipeGap, 60, canvas.height - (p.top + pipeGap));
-            }
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = "#000";
 
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 20px 'Segoe UI'";
-            ctx.fillText("SCORE: " + score, 20, 35);
+                // --- UPPER PIPE STRUCTURE ---
+                ctx.fillStyle = "#73bf2e"; // Core classic green shade
+                ctx.fillRect(p.x, 0, pipeWidth, p.top);
+                ctx.strokeRect(p.x, -4, pipeWidth, p.top + 4);
+                
+                // Add vertical highlighting accent lines inside upper pipe
+                ctx.fillStyle = "#9beb42";
+                ctx.fillRect(p.x + 8, 0, 6, p.top);
+                ctx.fillStyle = "#529416";
+                ctx.fillRect(p.x + pipeWidth - 14, 0, 6, p.top);
 
-            if (gameOver) {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#ff0000";
-                ctx.font = "bold 40px 'Segoe UI'";
-                ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
-                ctx.fillStyle = "#fff";
-                ctx.font = "20px 'Segoe UI'";
-                ctx.fillText("Press 'R' to Play Again", canvas.width / 2, canvas.height / 2 + 30);
-                ctx.textAlign = "left";
+                // Pipe Lip End Piece (Upper)
+                ctx.fillStyle = "#73bf2e";
+                ctx.fillRect(p.x - 3, p.top - 24, pipeWidth + 6, 24);
+                ctx.strokeRect(p.x - 3, p.top - 24, pipeWidth + 6, 24);
+                ctx.fillStyle = "#9beb42";
+                ctx.fillRect(p.x + 5, p.top - 22, 6, 20);
+
+                // --- LOWER PIPE STRUCTURE ---
+                ctx.fillStyle = "#73bf2e";
+                ctx.fillRect(p.x, p.y = p.top + pipeGap, pipeWidth, groundY - (p.top + pipeGap));
+                ctx.strokeRect(p.x, p.top + pipeGap, pipeWidth, groundY - (p.top + pipeGap) + 4);
+
+                // Add vertical highlighting accent lines inside lower pipe
+                ctx.fillStyle = "#9beb42";
+                ctx.fillRect(p.x + 8, p.top + pipeGap, 6, groundY - (p.top + pipeGap));
+                ctx.fillStyle = "#529416";
+                ctx.fillRect(p.x + pipeWidth - 14, p.top + pipeGap, 6, groundY - (p.top + pipeGap));
+
+                // Pipe Lip End Piece (Lower)
+                ctx.fillStyle = "#73bf2e";
+                ctx.fillRect(p.x - 3, p.top + pipeGap, pipeWidth + 6, 24);
+                ctx.strokeRect(p.x - 3, p.top + pipeGap, pipeWidth + 6, 24);
+                ctx.fillStyle = "#9beb42";
+                ctx.fillRect(p.x + 5, p.top + pipeGap + 2, 6, 20);
             }
         }
 
-        function gameLoop() {
-            update();
-            draw();
-            if (!gameOver) {
-                requestAnimationFrame(gameLoop);
+        function drawEnvironmentLayout() {
+            // Render Background Scenery Details (Distant Pixel Green Bushes)
+            ctx.fillStyle = "#64b3ba"; // Slightly darker sky layer at horizon
+            ctx.fillRect(0, groundY - 50, canvas.width, 50);
+            
+            ctx.fillStyle = "#4ca664";
+            for (let i = 0; i < canvas.width; i += 80) {
+                ctx.beginPath();
+                ctx.arc(i + 40, groundY, 35, Math.PI, 0);
+                ctx.fill();
             }
-        }
 
-        resetGame();
-    </script>
-</body>
-</html>
+            // Render scrolling platform floor blocks base mesh layers
+            ctx.fillStyle = "#ddd894"; // Sand tone base floor
+            ctx.fillRect(0, groundY, canvas.width, groundHeight);
+
+            // Repeating grass ridge accents along ground panel border
+            ctx.fillStyle = "#53bf33";
