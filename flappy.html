@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird - Arcade</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #111;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        h1 {
+            color: #ffcc00;
+            text-shadow: 2px 2px #d35400;
+            margin: 5px 0;
+        }
+        #gameCanvas {
+            background-color: #70c5ce;
+            border: 4px solid #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .controls {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #4ecca3;
+        }
+        .back-btn {
+            margin-top: 20px;
+            color: #aaa;
+            text-decoration: none;
+        }
+        .back-btn:hover { color: #fff; }
+    </style>
+</head>
+<body>
+
+    <h1>Flappy Bird 🐦</h1>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div class="controls">Controls: SPACEBAR or UP ARROW to Fly | Press 'R' to Restart</div>
+    <a href="index.html" class="back-btn">← Back to Main Menu</a>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let score = 0;
+        let gameOver = false;
+
+        const bird = {
+            x: 150,
+            y: 200,
+            width: 34,
+            height: 24,
+            gravity: 0.4,
+            velocity: 0,
+            jump: -6.5
+        };
+
+        let pipes = [];
+        let spawnTimer = 0;
+        const pipeGap = 130;
+
+        window.addEventListener("keydown", function(e) {
+            if ((e.code === "Space" || e.code === "ArrowUp") && !gameOver) {
+                bird.velocity = bird.jump;
+            }
+            if (e.code === "KeyR" && gameOver) {
+                resetGame();
+            }
+        });
+
+        function resetGame() {
+            score = 0;
+            gameOver = false;
+            pipes = [];
+            bird.y = 200;
+            bird.velocity = 0;
+            spawnTimer = 0;
+            gameLoop();
+        }
+
+        function update() {
+            if (gameOver) return;
+
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            if (bird.y > canvas.height - bird.height || bird.y < 0) {
+                gameOver = true;
+            }
+
+            spawnTimer++;
+            if (spawnTimer % 100 === 0) {
+                let topHeight = Math.floor(Math.random() * 180) + 40;
+                pipes.push({ x: canvas.width, top: topHeight, passed: false });
+                spawnTimer = 0;
+            }
+
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                pipes[i].x -= 3.5;
+
+                if (bird.x < pipes[i].x + 60 && bird.x + bird.width > pipes[i].x) {
+                    if (bird.y < pipes[i].top || bird.y + bird.height > pipes[i].top + pipeGap) {
+                        gameOver = true;
+                    }
+                }
+
+                if (pipes[i].x + 60 < bird.x && !pipes[i].passed) {
+                    score++;
+                    pipes[i].passed = true;
+                }
+
+                if (pipes[i].x < -60) {
+                    pipes.splice(i, 1);
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = "#70c5ce";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#f39c12";
+            ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(bird.x + 20, bird.y + 4, 8, 6);
+
+            ctx.fillStyle = "#2ecc71";
+            for (let p of pipes) {
+                ctx.fillRect(p.x, 0, 60, p.top);
+                ctx.fillRect(p.x, p.top + pipeGap, 60, canvas.height - (p.top + pipeGap));
+            }
+
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 20px 'Segoe UI'";
+            ctx.fillText("SCORE: " + score, 20, 35);
+
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#ff0000";
+                ctx.font = "bold 40px 'Segoe UI'";
+                ctx.textAlign = "center";
+                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillStyle = "#fff";
+                ctx.font = "20px 'Segoe UI'";
+                ctx.fillText("Press 'R' to Play Again", canvas.width / 2, canvas.height / 2 + 30);
+                ctx.textAlign = "left";
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        resetGame();
+    </script>
+</body>
+</html>
