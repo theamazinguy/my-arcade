@@ -84,7 +84,7 @@
         window.addEventListener("keydown", (e) => {
             if ((e.code === "Space" || e.code === "ArrowUp") && !gameOver) {
                 bird.velocity = bird.jumpForce;
-                bird.rotation = -0.35; // Instant upward tilt when flapping
+                bird.rotation = -0.35; 
             }
             if (e.code === "KeyR" && gameOver) {
                 resetGame();
@@ -106,34 +106,28 @@
         function updatePhysics() {
             if (gameOver) return;
 
-            // Apply gravity and update bird positions
             bird.velocity += bird.gravity;
             bird.y += bird.velocity;
 
-            // Handle rotational dive animation (nose dives down when falling)
             if (bird.velocity > 3) {
                 bird.rotation = Math.min(bird.rotation + 0.08, Math.PI / 2);
             } else if (bird.velocity < 0) {
                 bird.rotation = Math.max(bird.rotation - 0.02, -0.4);
             }
 
-            // Floor/Ceiling crash validations
             if (bird.y + bird.radius >= groundY) {
                 bird.y = groundY - bird.radius;
                 gameOver = true;
             }
             if (bird.y - bird.radius <= 0) {
                 bird.y = bird.radius;
-                bird.velocity = 0.5; // Bump downward
+                bird.velocity = 0.5; 
             }
 
-            // Scroll ground mesh independent of scenery
             groundScrollX = (groundScrollX - pipeSpeed) % 24;
 
-            // Generate obstacle intervals
             spawnTimer++;
             if (spawnTimer % 90 === 0) {
-                // Generate relative gaps safely inside viewport limits
                 let minHeight = 40;
                 let maxHeight = groundY - pipeGap - 40;
                 let topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
@@ -146,11 +140,9 @@
                 spawnTimer = 0;
             }
 
-            // Update individual pipe offsets
             for (let i = pipes.length - 1; i >= 0; i--) {
                 pipes[i].x -= pipeSpeed;
 
-                // Precision collision bounding calculations
                 let bLeft = bird.x - bird.radius + 3;
                 let bRight = bird.x + bird.radius - 3;
                 let bTop = bird.y - bird.radius + 3;
@@ -162,21 +154,18 @@
                     }
                 }
 
-                // Increment score counter on clean pipeline crossing
                 if (pipes[i].x + pipeWidth < bird.x && !pipes[i].passed) {
                     score++;
                     if (score > highScore) highScore = score;
                     pipes[i].passed = true;
                 }
 
-                // Splice pipes when moving past left frame boundary
                 if (pipes[i].x < -pipeWidth) {
                     pipes.splice(i, 1);
                 }
             }
         }
 
-        /* ==================== GRAPHICS DRAW ENGINE ==================== */
         function drawBird() {
             ctx.save();
             ctx.translate(bird.x, bird.y);
@@ -185,21 +174,18 @@
             ctx.lineWidth = 2;
             ctx.strokeStyle = "#000";
 
-            // 1. Yellow Round Body Base
             ctx.fillStyle = "#f1c40f";
             ctx.beginPath();
             ctx.arc(0, 0, bird.radius, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
-            // 2. Wing Mesh Layer (White/Orange accent flap)
             ctx.fillStyle = "#f39c12";
             ctx.beginPath();
             ctx.ellipse(-6, 2, 8, 5, Math.PI / 6, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
-            // 3. Large Eye Layer
             ctx.fillStyle = "#fff";
             ctx.beginPath();
             ctx.arc(5, -4, 5, 0, Math.PI * 2);
@@ -211,7 +197,6 @@
             ctx.arc(6, -4, 2, 0, Math.PI * 2);
             ctx.fill();
 
-            // 4. Large Orange Beak
             ctx.fillStyle = "#e67e22";
             ctx.beginPath();
             ctx.moveTo(11, -2);
@@ -225,51 +210,46 @@
         }
 
         function drawPipes() {
-            for (let p of pipes) {
+            for (let i = 0; i < pipes.length; i++) {
+                let p = pipes[i];
                 ctx.lineWidth = 2.5;
                 ctx.strokeStyle = "#000";
 
-                // --- UPPER PIPE STRUCTURE ---
-                ctx.fillStyle = "#73bf2e"; // Core classic green shade
+                ctx.fillStyle = "#73bf2e"; 
                 ctx.fillRect(p.x, 0, pipeWidth, p.top);
                 ctx.strokeRect(p.x, -4, pipeWidth, p.top + 4);
                 
-                // Add vertical highlighting accent lines inside upper pipe
                 ctx.fillStyle = "#9beb42";
                 ctx.fillRect(p.x + 8, 0, 6, p.top);
                 ctx.fillStyle = "#529416";
                 ctx.fillRect(p.x + pipeWidth - 14, 0, 6, p.top);
 
-                // Pipe Lip End Piece (Upper)
                 ctx.fillStyle = "#73bf2e";
                 ctx.fillRect(p.x - 3, p.top - 24, pipeWidth + 6, 24);
                 ctx.strokeRect(p.x - 3, p.top - 24, pipeWidth + 6, 24);
                 ctx.fillStyle = "#9beb42";
                 ctx.fillRect(p.x + 5, p.top - 22, 6, 20);
 
-                // --- LOWER PIPE STRUCTURE ---
+                let bottomPipeY = p.top + pipeGap;
                 ctx.fillStyle = "#73bf2e";
-                ctx.fillRect(p.x, p.y = p.top + pipeGap, pipeWidth, groundY - (p.top + pipeGap));
-                ctx.strokeRect(p.x, p.top + pipeGap, pipeWidth, groundY - (p.top + pipeGap) + 4);
+                ctx.fillRect(p.x, bottomPipeY, pipeWidth, groundY - bottomPipeY);
+                ctx.strokeRect(p.x, bottomPipeY, pipeWidth, groundY - bottomPipeY + 4);
 
-                // Add vertical highlighting accent lines inside lower pipe
                 ctx.fillStyle = "#9beb42";
-                ctx.fillRect(p.x + 8, p.top + pipeGap, 6, groundY - (p.top + pipeGap));
+                ctx.fillRect(p.x + 8, bottomPipeY, 6, groundY - bottomPipeY);
                 ctx.fillStyle = "#529416";
-                ctx.fillRect(p.x + pipeWidth - 14, p.top + pipeGap, 6, groundY - (p.top + pipeGap));
+                ctx.fillRect(p.x + pipeWidth - 14, bottomPipeY, 6, groundY - bottomPipeY);
 
-                // Pipe Lip End Piece (Lower)
                 ctx.fillStyle = "#73bf2e";
-                ctx.fillRect(p.x - 3, p.top + pipeGap, pipeWidth + 6, 24);
-                ctx.strokeRect(p.x - 3, p.top + pipeGap, pipeWidth + 6, 24);
+                ctx.fillRect(p.x - 3, bottomPipeY, pipeWidth + 6, 24);
+                ctx.strokeRect(p.x - 3, bottomPipeY, pipeWidth + 6, 24);
                 ctx.fillStyle = "#9beb42";
-                ctx.fillRect(p.x + 5, p.top + pipeGap + 2, 6, 20);
+                ctx.fillRect(p.x + 5, bottomPipeY + 2, 6, 20);
             }
         }
 
         function drawEnvironmentLayout() {
-            // Render Background Scenery Details (Distant Pixel Green Bushes)
-            ctx.fillStyle = "#64b3ba"; // Slightly darker sky layer at horizon
+            ctx.fillStyle = "#64b3ba"; 
             ctx.fillRect(0, groundY - 50, canvas.width, 50);
             
             ctx.fillStyle = "#4ca664";
@@ -279,10 +259,46 @@
                 ctx.fill();
             }
 
-            // Render scrolling platform floor blocks base mesh layers
-            ctx.fillStyle = "#ddd894"; // Sand tone base floor
+            ctx.fillStyle = "#ddd894"; 
             ctx.fillRect(0, groundY, canvas.width, groundHeight);
 
-            // Repeating grass ridge accents along ground panel border
             ctx.fillStyle = "#53bf33";
+            ctx.fillRect(0, groundY, canvas.width, 14);
             
+            ctx.fillStyle = "#429429"; 
+            ctx.lineWidth = 2;
+            for (let x = groundScrollX; x < canvas.width + 32; x += 18) {
+                ctx.beginPath();
+                ctx.moveTo(x, groundY);
+                ctx.lineTo(x - 10, groundY + 14);
+                ctx.lineTo(x - 4, groundY + 14);
+                ctx.lineTo(x + 6, groundY);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, groundY, canvas.width, 3);
+        }
+
+        function drawInterfaceHUD() {
+            ctx.fillStyle = "#fff";
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 4;
+            ctx.font = "bold 32px 'Courier New'";
+            ctx.textAlign = "center";
+
+            if (!gameOver) {
+                ctx.strokeText(score, canvas.width / 2, 60);
+                ctx.fillText(score, canvas.width / 2, 60);
+            } else {
+                ctx.fillStyle = "rgba(0,0,0,0.75)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = "#e40010";
+                ctx.font = "bold 36px 'Courier New'";
+                ctx.strokeText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
+                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
+
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 20px 'Courier New'";
