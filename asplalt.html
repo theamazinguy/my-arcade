@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asphalt 8 - 2D Arcade Airborne</title>
+    <title>Asphalt 8 - Mini Airborne</title>
     <style>
         body {
             font-family: 'Impact', sans-serif;
@@ -59,26 +59,19 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Game state engine metrics
         let speed = 0;
         let score = 0;
         let distance = 0;
-        let nitroGauge = 50; // out of 100
+        let nitroGauge = 50;
         let isNitroActive = false;
         let isDrifting = false;
-        let airTime = 0; // tracking flight scale states
+        let airTime = 0;
         let gameOver = false;
         let tickerMessage = "";
         let tickerTimer = 0;
 
-        // Player Vehicle Coordinates
         const car = { x: canvas.width / 2 - 25, y: 350, width: 50, height: 30 };
-
-        // Controller Dictionary Array 
         const keys = { a: false, d: false, w: false, s: false };
-
-        // Dynamic Environment Obstacles Loops Arrays
-        let trackCurves = [];
         let opponentCars = [];
         let ramps = [];
 
@@ -99,7 +92,7 @@
 
         function triggerTicker(msg) {
             tickerMessage = msg;
-            tickerTimer = 90; // display frame timeout duration counts
+            tickerTimer = 90;
         }
 
         function resetRaceTrack() {
@@ -114,14 +107,12 @@
             car.x = canvas.width / 2 - 25;
             car.y = 350;
 
-            // Generate initial batch of rival racer modules positions
             opponentCars = [
                 { x: 200, y: -100, speedModifier: 1.5, type: 'Ferrari', color: '#ff1100' },
                 { x: 500, y: -400, speedModifier: 1.8, type: 'Lamborghini', color: '#ffcc00' },
                 { x: 350, y: -800, speedModifier: 2.2, type: 'Bugatti', color: '#1a1aff' }
             ];
 
-            // Setup Launchpad locations
             ramps = [
                 { x: 180, y: -300, width: 45, visible: true },
                 { x: 520, y: -900, width: 45, visible: true }
@@ -137,7 +128,6 @@
             distance += Math.floor(speed / 2);
             score += Math.floor(speed / 4);
 
-            // 1. Manage Acceleration Speed caps
             let maxCurrentSpeed = isNitroActive ? 22 : 14;
             
             if (keys.w && nitroGauge > 0) {
@@ -146,35 +136,31 @@
                 if (speed < maxCurrentSpeed) speed += 0.25;
             } else {
                 isNitroActive = false;
-                if (speed > 14) speed -= 0.3; // cooling back to cruise velocity limits
+                if (speed > 14) speed -= 0.3;
                 else if (speed < 14) speed += 0.1;
             }
 
-            // 2. Lateral Handling & Drift Calculations Loops
             isDrifting = false;
             let steerFactor = isNitroActive ? 5.5 : 4.5;
 
             if (keys.s && (keys.a || keys.d)) {
                 isDrifting = true;
-                steerFactor *= 1.35; // increased handling rotation angle when loose
-                if (nitroGauge < 100) nitroGauge += 0.2; // earn nitro via sideways drift sliding maneuvers
+                steerFactor *= 1.35;
+                if (nitroGauge < 100) nitroGauge += 0.2;
             }
 
             if (keys.a) car.x -= steerFactor;
             if (keys.d) car.x += steerFactor;
 
-            // Outer off-road boundaries grass collision tracking
             if (car.x < 120 || car.x + car.width > 648) {
                 if (airTime === 0) {
-                    speed = Math.max(speed - 0.4, 4); // dirt friction slowdown
+                    speed = Math.max(speed - 0.4, 4);
                     isDrifting = false;
                 }
             }
 
-            // 3. Air-time Stunt Jumping Physics Engine Checks
             if (airTime > 0) {
                 airTime--;
-                // Handle dynamic scale sizing adjustments when falling back to track floor plate surfaces
                 if (airTime > 25) car.y = 350 - (40 - airTime) * 2; 
                 else car.y = 350 - airTime * 2;
 
@@ -185,17 +171,15 @@
                 }
             }
 
-            // 4. Opponent Vehicle Traversal Logic Loops
-            for (let op of opponentCars) {
+            for (let i = 0; i < opponentCars.length; i++) {
+                let op = opponentCars[i];
                 op.y += (speed - op.speedModifier * 6);
 
-                // Recycle rival placements back ahead when scrolled out of boundaries frame bottom line positions
                 if (op.y > canvas.height + 100) {
                     op.y = -500 - Math.random() * 300;
                     op.x = 160 + Math.random() * 400;
                 }
 
-                // Crash & Takedown hitbox overlapping checks
                 if (
                     airTime === 0 &&
                     car.x < op.x + 44 &&
@@ -204,21 +188,19 @@
                     car.y + car.height > op.y
                 ) {
                     if (isNitroActive) {
-                        // Clean destruction knockdown action sequence
                         op.y = -600; 
                         op.x = 160 + Math.random() * 400;
                         score += 1500;
                         nitroGauge = Math.min(nitroGauge + 40, 100);
                         triggerTicker("💥 KNOCKDOWN! +1500");
                     } else {
-                        // Crash game over logic sequence
                         gameOver = true;
                     }
                 }
             }
 
-            // 5. Airborne Ramp Stunt Launchpads Collision Detections
-            for (let r of ramps) {
+            for (let i = 0; i < ramps.length; i++) {
+                let r = ramps[i];
                 r.y += speed;
 
                 if (r.y > canvas.height + 50) {
@@ -233,31 +215,25 @@
                     car.y < r.y + 20 &&
                     car.y + car.height > r.y
                 ) {
-                    airTime = 40; // engage flight timer state cycle logic parameters
+                    airTime = 40;
                     triggerTicker("🚀 AIRBORNE BARREL ROLL!");
                     nitroGauge = Math.min(nitroGauge + 25, 100);
                 }
             }
 
-            // Lower countdown timer sequences values metrics
             if (tickerTimer > 0) tickerTimer--;
         }
 
-        /* ==================== RENDERING GRAPHICS PROCEDURAL FRAME DRAW ==================== */
         function drawVisualTrackLayers() {
-            // Distant desert neon futuristic horizon landscape layout wireframe
             ctx.fillStyle = "#090d1f";
             ctx.fillRect(0, 0, canvas.width, 160);
 
-            // Draw Synth Horizon lines glow bars elements
             ctx.fillStyle = "#ff0055";
             ctx.fillRect(0, 156, canvas.width, 4);
 
-            // Ground base off-road shoulder boundaries strips
             ctx.fillStyle = "#121b3d"; 
             ctx.fillRect(0, 160, canvas.width, canvas.height - 160);
 
-            // Perspective Asphalt Track Plate Profile Rendering Layout Boundaries
             ctx.fillStyle = "#1d233d";
             ctx.beginPath();
             ctx.moveTo(120, canvas.height);
@@ -267,5 +243,52 @@
             ctx.closePath();
             ctx.fill();
 
-            // Draw repeating center white dash line meshes using distance module updates factor
             ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 6;
+            
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, canvas.height);
+            ctx.lineTo(canvas.width / 2, 160);
+            ctx.stroke();
+
+            ctx.fillStyle = "#00ccff";
+            for (let i = 0; i < ramps.length; i++) {
+                let r = ramps[i];
+                if (r.y < 160) continue;
+                ctx.fillRect(r.x, r.y, r.width, 15);
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(r.x + 4, r.y + 4, r.width - 8, 4);
+                ctx.fillStyle = "#00ccff";
+            }
+
+            for (let i = 0; i < opponentCars.length; i++) {
+                let op = opponentCars[i];
+                if (op.y < 160 || op.y > canvas.height) continue;
+                
+                ctx.fillStyle = "#111";
+                ctx.fillRect(op.x - 4, op.y, 52, 4);
+
+                ctx.fillStyle = op.color;
+                ctx.fillRect(op.x, op.y + 4, 44, 18);
+
+                ctx.fillStyle = "#a3d1ff";
+                ctx.fillRect(op.x + 8, op.y + 8, 28, 6);
+
+                ctx.fillStyle = "#ff3300";
+                ctx.fillRect(op.x + 2, op.y + 4, 6, 3);
+                ctx.fillRect(op.x + 36, op.y + 4, 6, 3);
+            }
+        }
+
+        function drawPlayerVehicleModel() {
+            ctx.save();
+            
+            if (isDrifting) {
+                if (keys.a) {
+                    ctx.translate(car.x + car.width / 2, car.y + car.height / 2);
+                    ctx.rotate(-0.14);
+                    ctx.translate(-(car.x + car.width / 2), -(car.y + car.height / 2));
+                }
+                if (keys.d) {
+                    ctx.translate(car.x + car.width / 2, car.y + car.height / 2);
+                    ctx.rotate(0.14);
