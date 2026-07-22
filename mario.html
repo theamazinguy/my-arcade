@@ -24,7 +24,7 @@
             letter-spacing: 2px;
         }
         #gameCanvas {
-            background-color: #5c94fc; /* Official NES Sky Blue */
+            background-color: #5c94fc;
             border: 6px double #fff;
             display: block;
         }
@@ -54,7 +54,6 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // Game Configuration & Engine States
         let score = 0;
         let coins = 0;
         let gameOver = false;
@@ -62,7 +61,6 @@
         const gravity = 0.55;
         const groundY = canvas.height - 48;
 
-        // Player State with Real Physics
         const mario = {
             x: 100, y: 300,
             width: 32, height: 44,
@@ -72,14 +70,10 @@
             facing: 'right'
         };
 
-        // Keyboard Input Dictionary
         const keys = { a: false, d: false, space: false };
-
-        // Authentic World Map Layout Structures
         let environmentBlocks = [];
         let enemies = [];
 
-        // Setup Event Listeners for smooth control tracking
         window.addEventListener("keydown", (e) => {
             if (e.code === "KeyA" || e.code === "ArrowLeft") keys.a = true;
             if (e.code === "KeyD" || e.code === "ArrowRight") keys.d = true;
@@ -101,21 +95,17 @@
 
         function buildLevelLayout() {
             environmentBlocks = [];
-            
-            // Build blocks and question structures
             for (let i = 0; i < 50; i++) {
                 let baseX = i * 40;
                 if (i >= 6 && i <= 9) environmentBlocks.push({ x: baseX, y: 240, width: 40, height: 40, type: i === 7 ? 'mystery' : 'brick', hit: false });
                 if (i >= 14 && i <= 18) environmentBlocks.push({ x: baseX, y: 160, width: 40, height: 40, type: i % 2 === 0 ? 'mystery' : 'brick', hit: false });
                 if (i >= 23 && i <= 27) environmentBlocks.push({ x: baseX, y: 240, width: 40, height: 40, type: 'brick', hit: false });
 
-                // Pipes
                 if (i === 11) environmentBlocks.push({ x: baseX, y: groundY - 60, width: 50, height: 60, type: 'pipe' });
                 if (i === 21) environmentBlocks.push({ x: baseX, y: groundY - 85, width: 50, height: 85, type: 'pipe' });
                 if (i === 30) environmentBlocks.push({ x: baseX, y: groundY - 70, width: 50, height: 70, type: 'pipe' });
             }
 
-            // Populate Goombas
             enemies = [
                 { x: 400, y: groundY - 32, width: 32, height: 32, speed: -1.2, alive: true, stepFrame: 0 },
                 { x: 680, y: groundY - 32, width: 32, height: 32, speed: -1.2, alive: true, stepFrame: 0 },
@@ -173,8 +163,8 @@
                 mario.isJumping = false;
             }
 
-            // Block Collisions
-            for (let b of environmentBlocks) {
+            for (let i = 0; i < environmentBlocks.length; i++) {
+                let b = environmentBlocks[i];
                 if (
                     mario.x < b.x + b.width &&
                     mario.x + mario.width > b.x &&
@@ -207,7 +197,6 @@
                 }
             }
 
-            // Safe Enemy Processing Loop
             for (let i = 0; i < enemies.length; i++) {
                 let e = enemies[i];
                 if (!e.alive) continue;
@@ -215,7 +204,6 @@
                 e.x += e.speed;
                 e.stepFrame = Math.floor(Date.now() / 150) % 2;
 
-                // Wall / Pipe boundary bouncing checks
                 for (let j = 0; j < environmentBlocks.length; j++) {
                     let b = environmentBlocks[j];
                     if (b.type === 'pipe' && e.x < b.x + b.width && e.x + e.width > b.x) {
@@ -271,3 +259,20 @@
 
             ctx.fillStyle = skinTan;
             ctx.fillRect(8, 2, 18, 10);
+            ctx.fillRect(24, 4, 6, 4); 
+
+            ctx.fillStyle = hairBrown;
+            ctx.fillRect(6, 2, 4, 6); 
+            ctx.fillRect(20, 6, 8, 3); 
+            ctx.fillStyle = "#000";
+            ctx.fillRect(20, 2, 3, 3); 
+
+            ctx.fillStyle = shirtRed;
+            ctx.fillRect(6, -2, 16, 4);
+            ctx.fillRect(10, 0, 16, 4);
+
+            ctx.restore();
+        }
+
+        function drawGameEnvironment() {
+            ctx.fillStyle = "#d86800"; 
